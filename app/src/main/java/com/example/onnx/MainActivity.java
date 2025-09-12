@@ -32,6 +32,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Camera2App";
     private TextureView textureView;
     private ImageView imageView;
+    private TextView textView;
     private CameraDevice cameraDevice;
     private CameraCaptureSession cameraCaptureSession;
     private CaptureRequest.Builder captureRequestBuilder;
@@ -59,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
     private Button processCameraButton;
     private static final int REQUEST_WRITE_STORAGE = 112;
     Context context;
+
+    private volatile boolean shouldProcessFrame = false;
 
     onnxModelHandler.OnnxModelHandler onnxModelHandler= null;
 
@@ -87,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         closeCameraButton = findViewById(R.id.closeCameraButton);
         processCameraButton=findViewById(R.id.processCameraButton);
         imageView = findViewById(R.id.processedImageView);
+        textView = findViewById(R.id.infoTextView);
 
         openCameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -112,16 +117,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "Process button clicked");
+                shouldProcessFrame=true;
             }
         });
 
-        try {
-            onnxModelHandler = new onnxModelHandler.OnnxModelHandler(this, "metric3d_vit_small.onnx");
-            Toast.makeText(this, "onnx model loaded", Toast.LENGTH_SHORT).show();
-        } catch (OrtException | IOException e) {
-            Toast.makeText(this, "Failed to load model", Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
-        }
+        initOnnx();
+
     }
 
 
@@ -258,17 +259,21 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d(TAG, "setupImageReader: " );
 
-                Bitmap bitmap1 = imageToBitmap(image);
+                Bitmap bitmap = imageToBitmap(image);
                 image.close();
 
-                if (bitmap1 != null) {
-                    Bitmap finalBitmap = bitmap1;
+                if (bitmap != null && shouldProcessFrame) {
+                    //run on ui thread hide process button
+                    runOnUiThread(() -> processCameraButton.setVisibility(View.INVISIBLE));
 
                     processingExecutor.submit(() -> {
+                        //i want to get time difference for inference
+                        long startTime = System.currentTimeMillis();
+
                         //onnx inference
                         if (onnxModelHandler != null) {
                             try {
-                                float[] output = onnxModelHandler.runInference(finalBitmap);
+                                float[] output = onnxModelHandler.runInference(bitmap);
                                 // Process the output as needed
                                 Log.d(TAG, "setupImageReader: onnx inference success");
 
@@ -278,7 +283,18 @@ public class MainActivity extends AppCompatActivity {
                         }else
                             Log.d(TAG, "setupImageReader: onnx model null ");
 
+
+                        long endTime = System.currentTimeMillis();
+                        double inferenceTime = (double) (endTime - startTime) /1000;
+
+                        shouldProcessFrame=false;
+                        runOnUiThread(() -> {
+                            processCameraButton.setVisibility(View.VISIBLE);
+                            textView.setText("Last Inference Time " + inferenceTime + " ms");
+                        });
+
                     });
+
                 }
             }
         }, null);
@@ -290,5 +306,16 @@ public class MainActivity extends AppCompatActivity {
         buffer.get(bytes);
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
     }
+
+    private void initOnnx(){
+        try {
+            onnxModelHandler = new onnxModelHandler.OnnxModelHandler(this, "metric3d_vit_small.onnx");
+            Toast.makeText(this, "onnx model loaded", Toast.LENGTH_SHORT).show();
+        } catch (OrtException | IOException e) {
+            Toast.makeText(this, "Failed to load model", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+    }
+
 
 }
