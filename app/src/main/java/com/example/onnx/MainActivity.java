@@ -12,7 +12,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -25,7 +24,6 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
@@ -69,6 +67,8 @@ public class MainActivity extends AppCompatActivity {
     // This will be our dedicated background thread for processing images.
     private ExecutorService processingExecutor;
     float[][][] inferenceResult;
+
+    static {  System.loadLibrary("onnx"); }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -276,8 +276,28 @@ public class MainActivity extends AppCompatActivity {
                         //onnx inference
                         if (onnxModelHandler != null) {
                             try {
+                                Log.d(TAG, "onnx start inferencing");
                                 inferenceResult = onnxModelHandler.runInference(bitmap);
-                                saveArrayToFile(inferenceResult);
+                                float [][][] array = new float[1][4][4]; // Example 3D array
+                                //fill array with random values
+                                for (int i = 0; i < 1; i++) {
+                                    for (int j = 0; j < array[0].length; j++) {
+                                        for (int k = 0; k < array[0][0].length; k++) {
+                                            array[i][j][k] = (float) Math.random();
+                                        }
+                                    }
+                                }
+                                Log.d(TAG, "array before : "+ Arrays.deepToString(array));
+
+                                //send to native for remove padding and resize
+//                                Arrays resultArray = getString(inferenceResult[0], inferenceResult[0].length, inferenceResult[0][0].length);
+                                float [][] resultArray = getString(array[0], array[0].length, array[0][0].length);
+
+                                Log.d(TAG, "array after : "+ Arrays.deepToString(resultArray));
+
+                                //save the result to a text file
+//                                saveArrayToFile(inferenceResult);
+
 
                                 // Process the output as needed
                                 Log.d(TAG, "setupImageReader: onnx inference success");
@@ -323,7 +343,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    //write a method to save a float[][][] to a text file in scoped storage
+    //write a method to save a float[][][] to a text file in storage
     private void saveArrayToFile(float[][][] array) {
         File externalDir = new File(context.getExternalFilesDir(null), "");
         File file = new File(externalDir, "output.txt");
@@ -335,5 +355,7 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "Error saving result to file", e);
         }
     }
+
+    private native float [][] getString(float[][] array, int height , int width);
 
 }
