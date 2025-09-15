@@ -47,7 +47,7 @@ import ai.onnxruntime.OrtException;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "Camera2App";
+    private static final String TAG = "onnx MainActivity";
     private TextureView textureView;
     private ImageView imageView;
     private TextView textView;
@@ -68,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
     // This will be our dedicated background thread for processing images.
     private ExecutorService processingExecutor;
+    float[][][] inferenceResult;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         context= getApplicationContext();
+
 
         // Initialize the single-thread executor.
         processingExecutor = Executors.newSingleThreadExecutor();
@@ -263,6 +265,7 @@ public class MainActivity extends AppCompatActivity {
                 image.close();
 
                 if (bitmap != null && shouldProcessFrame) {
+                    shouldProcessFrame=false;
                     //run on ui thread hide process button
                     runOnUiThread(() -> processCameraButton.setVisibility(View.INVISIBLE));
 
@@ -273,7 +276,9 @@ public class MainActivity extends AppCompatActivity {
                         //onnx inference
                         if (onnxModelHandler != null) {
                             try {
-                                float[] output = onnxModelHandler.runInference(bitmap);
+                                inferenceResult = onnxModelHandler.runInference(bitmap);
+                                saveArrayToFile(inferenceResult);
+
                                 // Process the output as needed
                                 Log.d(TAG, "setupImageReader: onnx inference success");
 
@@ -287,10 +292,10 @@ public class MainActivity extends AppCompatActivity {
                         long endTime = System.currentTimeMillis();
                         double inferenceTime = (double) (endTime - startTime) /1000;
 
-                        shouldProcessFrame=false;
+
                         runOnUiThread(() -> {
                             processCameraButton.setVisibility(View.VISIBLE);
-                            textView.setText("Last Inference Time " + inferenceTime + " ms");
+                            textView.setText("Last Inference Time " + inferenceTime + " sec");
                         });
 
                     });
@@ -317,5 +322,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    //write a method to save a float[][][] to a text file in scoped storage
+    private void saveArrayToFile(float[][][] array) {
+        File externalDir = new File(context.getExternalFilesDir(null), "");
+        File file = new File(externalDir, "output.txt");
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            String arrayString = Arrays.deepToString(array);
+            fos.write(arrayString.getBytes());
+            Log.d(TAG, "Saved result to file: " + file.getAbsolutePath());
+        } catch (IOException e) {
+            Log.e(TAG, "Error saving result to file", e);
+        }
+    }
 
 }

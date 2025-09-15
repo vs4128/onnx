@@ -5,20 +5,25 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.util.Log;
+import android.widget.Toast;
 
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 public class onnxModelHandler {
+    private static final String TAG = "onnx modelHandler";
 
     public static class OnnxModelHandler {
         private OrtEnvironment ortEnvironment;
         private OrtSession ortSession;
+
 
         // Utility to copy asset to internal storage
         private String copyAssetToFile(Context context, String assetName) throws IOException {
@@ -43,7 +48,7 @@ public class onnxModelHandler {
             ortSession = ortEnvironment.createSession(modelPath, new OrtSession.SessionOptions());
         }
 
-        public float[] runInference(Bitmap bitmap) throws OrtException {
+        public float[][][] runInference(Bitmap bitmap) throws OrtException {
             float[] inputTensor = prepareInput(bitmap);
             OnnxTensor input = OnnxTensor.createTensor(ortEnvironment, FloatBuffer.wrap(inputTensor), new long[]{1, 3, 616, 1064});
 
@@ -51,7 +56,7 @@ public class onnxModelHandler {
             inputs.put("pixel_values", input);
             OrtSession.Result results = ortSession.run(inputs);
 
-            return flattenOutput((float[][][]) results.get(0).getValue());
+            return (float[][][]) results.get(0).getValue();
         }
 
         private float[] prepareInput(Bitmap bitmap) {
@@ -72,17 +77,6 @@ public class onnxModelHandler {
             return inputData;
         }
 
-        private float[] flattenOutput(float[][][] output) {
-            int d1 = output.length;
-            int d2 = output[0].length;
-            int d3 = output[0][0].length;
-            float[] flat = new float[d1 * d2 * d3];
-            int idx = 0;
-            for (int i = 0; i < d1; i++)
-                for (int j = 0; j < d2; j++)
-                    for (int k = 0; k < d3; k++)
-                        flat[idx++] = output[i][j][k];
-            return flat;
-        }
+
     }
 }

@@ -37,7 +37,7 @@
         android:id="@+id/infoTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Processed Output:"
+        android:text="Last Inference Time 0 sec"
         android:textColor="@android:color/white"
         android:background="#80000000"
         android:padding="4dp"
