@@ -278,7 +278,10 @@ public class MainActivity extends AppCompatActivity {
                             try {
                                 Log.d(TAG, "onnx start inferencing");
                                 inferenceResult = onnxModelHandler.runInference(bitmap);
-                                float [][][] array = new float[1][4][4]; // Example 3D array
+
+                                //bellow code for texting padding removal native code.
+
+                                float [][][] array = new float[1][5][4]; // Example 3D array
                                 //fill array with random values
                                 for (int i = 0; i < 1; i++) {
                                     for (int j = 0; j < array[0].length; j++) {
@@ -290,13 +293,17 @@ public class MainActivity extends AppCompatActivity {
                                 Log.d(TAG, "array before : "+ Arrays.deepToString(array));
 
                                 //send to native for remove padding and resize
-//                                Arrays resultArray = getString(inferenceResult[0], inferenceResult[0].length, inferenceResult[0][0].length);
-                                float [][] resultArray = getString(array[0], array[0].length, array[0][0].length);
+
+                                float [][] resultArray = nativeProcess(array[0], array[0].length, array[0][0].length);
 
                                 Log.d(TAG, "array after : "+ Arrays.deepToString(resultArray));
 
+                                //end of padding removal test
+
+//                                float [][] resultArray = nativeProcess(inferenceResult[0], inferenceResult[0].length, inferenceResult[0][0].length);
+
                                 //save the result to a text file
-//                                saveArrayToFile(inferenceResult);
+//                                saveArrayToFile(resultArray);
 
 
                                 // Process the output as needed
@@ -343,8 +350,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    //write a method to save a float[][][] to a text file in storage
-    private void saveArrayToFile(float[][][] array) {
+    private void saveArrayToFile(float[][] array) {
         File externalDir = new File(context.getExternalFilesDir(null), "");
         File file = new File(externalDir, "output.txt");
         try (FileOutputStream fos = new FileOutputStream(file)) {
@@ -356,6 +362,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private native float [][] getString(float[][] array, int height , int width);
+    private native float [][] nativeProcess(float[][] array, int height , int width);
 
 }

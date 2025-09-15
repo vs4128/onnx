@@ -13,7 +13,7 @@
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_com_example_onnx_MainActivity_getString(JNIEnv *env, jobject thiz,jobjectArray arr, jint height, jint width) {
+Java_com_example_onnx_MainActivity_nativeProcess(JNIEnv *env, jobject thiz,jobjectArray arr, jint height, jint width) {
     //create a float 2D mat with the given height and width
     cv::Mat mat(height, width, CV_32FC1);
     //fill the mat with arr values
@@ -43,12 +43,15 @@ Java_com_example_onnx_MainActivity_getString(JNIEnv *env, jobject thiz,jobjectAr
     cv::Mat depth = mat(cv::Range(paddingTop, mat.rows - paddingBottom),
                         cv::Range(paddingLeft, mat.cols - paddingRight));
 
+    cv::Mat resizedDepth;
+    cv::resize(depth, resizedDepth, cv::Size(width, height), 0, 0, cv::INTER_LINEAR);
+
 
     //convert depth to java array and return it to java
-    jobjectArray depthArray = env->NewObjectArray(depth.rows, env->FindClass("[F"), nullptr);
-    for (int i = 0; i < depth.rows; i++) {
-        jfloatArray row = env->NewFloatArray(depth.cols);
-        env->SetFloatArrayRegion(row, 0, depth.cols, depth.ptr<float>(i));
+    jobjectArray depthArray = env->NewObjectArray(resizedDepth.rows, env->FindClass("[F"), nullptr);
+    for (int i = 0; i < resizedDepth.rows; i++) {
+        jfloatArray row = env->NewFloatArray(resizedDepth.cols);
+        env->SetFloatArrayRegion(row, 0, resizedDepth.cols, resizedDepth.ptr<float>(i));
         env->SetObjectArrayElement(depthArray, i, row);
         env->DeleteLocalRef(row);
     }
