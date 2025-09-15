@@ -280,30 +280,30 @@ public class MainActivity extends AppCompatActivity {
                                 inferenceResult = onnxModelHandler.runInference(bitmap);
 
                                 //bellow code for texting padding removal native code.
-
-                                float [][][] array = new float[1][5][4]; // Example 3D array
-                                //fill array with random values
-                                for (int i = 0; i < 1; i++) {
-                                    for (int j = 0; j < array[0].length; j++) {
-                                        for (int k = 0; k < array[0][0].length; k++) {
-                                            array[i][j][k] = (float) Math.random();
-                                        }
-                                    }
-                                }
-                                Log.d(TAG, "array before : "+ Arrays.deepToString(array));
-
-                                //send to native for remove padding and resize
-
-                                float [][] resultArray = nativeProcess(array[0], array[0].length, array[0][0].length);
-
-                                Log.d(TAG, "array after : "+ Arrays.deepToString(resultArray));
+//
+//                                float [][][] array = new float[1][5][4]; // Example 3D array
+//                                //fill array with random values
+//                                for (int i = 0; i < 1; i++) {
+//                                    for (int j = 0; j < array[0].length; j++) {
+//                                        for (int k = 0; k < array[0][0].length; k++) {
+//                                            array[i][j][k] = (float) Math.random();
+//                                        }
+//                                    }
+//                                }
+//                                Log.d(TAG, "array before : "+ Arrays.deepToString(array));
+//
+//                                //send to native for remove padding and resize
+//
+//                                float [][] resultArray = nativeProcess(array[0], array[0].length, array[0][0].length);
+//
+//                                Log.d(TAG, "array after : "+ Arrays.deepToString(resultArray));
 
                                 //end of padding removal test
 
-//                                float [][] resultArray = nativeProcess(inferenceResult[0], inferenceResult[0].length, inferenceResult[0][0].length);
+                                float [][] resultArray = nativeProcess(inferenceResult[0], inferenceResult[0].length, inferenceResult[0][0].length);
 
                                 //save the result to a text file
-//                                saveArrayToFile(resultArray);
+                                saveArrayToFile(resultArray);
 
 
                                 // Process the output as needed

@@ -32,8 +32,8 @@ Java_com_example_onnx_MainActivity_nativeProcess(JNIEnv *env, jobject thiz,jobje
 
     int paddingTop = 0;
     int paddingBottom = 0;
-    int paddingLeft = 1;
-    int paddingRight = 1;
+    int paddingLeft = 121;
+    int paddingRight = 122;
 
     //depth = mat[
     //        paddingTop : input_size[0] - paddingBottom,
@@ -44,7 +44,9 @@ Java_com_example_onnx_MainActivity_nativeProcess(JNIEnv *env, jobject thiz,jobje
                         cv::Range(paddingLeft, mat.cols - paddingRight));
 
     cv::Mat resizedDepth;
-    cv::resize(depth, resizedDepth, cv::Size(width, height), 0, 0, cv::INTER_LINEAR);
+    int resizedHeight = 480;
+    int resizedWidth = 640;
+    cv::resize(depth, resizedDepth, cv::Size(resizedWidth, resizedHeight), 0, 0, cv::INTER_LINEAR);
 
 
     //convert depth to java array and return it to java
@@ -56,6 +58,5 @@ Java_com_example_onnx_MainActivity_nativeProcess(JNIEnv *env, jobject thiz,jobje
         env->DeleteLocalRef(row);
     }
 
-    //retrn depth array
     return depthArray;
 }
