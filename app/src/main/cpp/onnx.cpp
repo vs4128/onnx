@@ -55,7 +55,10 @@ Java_com_example_onnx_MainActivity_nativeProcess(JNIEnv *env, jobject thiz,jobje
 
     //convert depth map to point cloud
     cv::Mat pointCloud = depthMapToPointCloud(resizedDepth);
-    //save this point cloud to
+
+
+
+
 
 
 //    auto thread = std::thread([this, path, image]() mutable
