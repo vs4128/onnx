@@ -4,20 +4,16 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include <thread>
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
+#include <sstream>
 
 #define LOG_TAG "onnxNative"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
 
-cv::Mat depthMapToPointCloud(cv::Mat mat);
+cv::Mat depthMapToPointCloud(cv::Mat depthMap, std::string& pointString);
 
 extern "C"
-JNIEXPORT jobjectArray JNICALL
+JNIEXPORT jstring JNICALL
 Java_com_example_onnx_MainActivity_nativeProcess(JNIEnv *env, jobject thiz,jobjectArray arr, jint height, jint width) {
     //create a float 2D mat with the given height and width
     cv::Mat mat(height, width, CV_32FC1);
@@ -53,25 +49,17 @@ Java_com_example_onnx_MainActivity_nativeProcess(JNIEnv *env, jobject thiz,jobje
     int resizedWidth = 640;
     cv::resize(depth, resizedDepth, cv::Size(resizedWidth, resizedHeight), 0, 0, cv::INTER_LINEAR);
 
+    //string to convert point cloud to string
+    std::string pointString="";
+
     //convert depth map to point cloud
-    cv::Mat pointCloud = depthMapToPointCloud(resizedDepth);
+    cv::Mat pointCloud = depthMapToPointCloud(resizedDepth, pointString);
 
-
-
-
-
-
-//    auto thread = std::thread([this, path, image]() mutable
-//                              {
-//                                  pcl::io::savePCDFile(path, *image->getPointCloud());
-//                              });
-//    thread.detach();
-
-
-    return 1;
+   //return pointString as jstring
+    return env->NewStringUTF(pointString.c_str());
 }
 
-cv::Mat depthMapToPointCloud(cv::Mat depthMap) {
+cv::Mat depthMapToPointCloud(cv::Mat depthMap, std::string& pointString) {
     int pointCloudWidth = depthMap.cols;
     int pointCloudHeigth = depthMap.rows;
 
@@ -79,21 +67,32 @@ cv::Mat depthMapToPointCloud(cv::Mat depthMap) {
     float fy = 488.3022098;
     float ppx = 320.99165;
     float ppy = 235.4008464;
-    float depthScalar = 0.001;
+    float depthScalar = 1.0;
 
     //create a mat with 3 channels to hold the point cloud with sizes of pointCloudWidth and pointCloudHeigth
     cv::Mat pointCloud(pointCloudHeigth, pointCloudWidth, CV_32FC3);
+    std::ostringstream oss;
 
     //fill the point cloud mat with the depth map values
     for (int v = 0; v < pointCloudHeigth; ++v)
     {
         for (int u = 0; u < pointCloudWidth; ++u)
         {
-            float z = static_cast<float>(depthMap.at<ushort>(v, u) * depthScalar);
+            float z = depthMap.at<float>(v, u) * depthScalar;
             float x = (static_cast<float>(u) - ppx) * z / fx;
-            float y = (static_cast<float>(v) - ppy) * z / fx;
+            float y = (static_cast<float>(v) - ppy) * z / fy;
             pointCloud.at<cv::Vec3f>(v, u) = cv::Vec3f(x, y, z);
+
+            oss << x << "," << y << "," << z << "\n";
         }
+    }
+
+
+
+    //remove last comma in pointString
+    pointString = oss.str();
+    if (!pointString.empty()) {
+        pointString.pop_back();
     }
 
     return pointCloud;

@@ -258,9 +258,6 @@ public class MainActivity extends AppCompatActivity {
             Image image = reader.acquireLatestImage();
 
             if (image != null) {
-
-                Log.d(TAG, "setupImageReader: " );
-
                 Bitmap bitmap = imageToBitmap(image);
                 image.close();
 
@@ -300,10 +297,15 @@ public class MainActivity extends AppCompatActivity {
 
                                 //end of padding removal test
 
-                                float [][] resultArray = nativeProcess(inferenceResult[0], inferenceResult[0].length, inferenceResult[0][0].length);
+//                                float [][] resultArray = nativeProcess(inferenceResult[0], inferenceResult[0].length, inferenceResult[0][0].length);
 
                                 //save the result to a text file
-                                saveArrayToFile(resultArray);
+//                                saveArrayToFile(resultArray);
+
+                                String resultString = nativeProcess(inferenceResult[0], inferenceResult[0].length, inferenceResult[0][0].length);
+                                Log.d(TAG, "setupImageReader: received string first 10: "+resultString.substring(0, Math.min(300, resultString.length())));
+                                saveTextToFile(resultString);
+
 
 
                                 // Process the output as needed
@@ -352,7 +354,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void saveArrayToFile(float[][] array) {
         File externalDir = new File(context.getExternalFilesDir(null), "");
-        File file = new File(externalDir, "output.txt");
+        File file = new File(externalDir, "output.json");
         try (FileOutputStream fos = new FileOutputStream(file)) {
             String arrayString = Arrays.deepToString(array);
             fos.write(arrayString.getBytes());
@@ -362,6 +364,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private native float [][] nativeProcess(float[][] array, int height , int width);
+    //write a function to save text to a file
+    private void saveTextToFile(String text) {
+        File externalDir = new File(context.getExternalFilesDir(null), "");
+        File file = new File(externalDir, "output.csv");
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(text.getBytes());
+            Log.d(TAG, "Saved text to file: " + file.getAbsolutePath());
+        } catch (IOException e) {
+            Log.e(TAG, "Error saving text to file", e);
+        }
+    }
+
+    private native String nativeProcess(float[][] array, int height , int width);
 
 }
