@@ -259,13 +259,20 @@ public class MainActivity extends AppCompatActivity {
 
             if (image != null) {
                 Bitmap bitmap = imageToBitmap(image);
+                //rotate bitmap 90 degree clockwise
+                final Bitmap displayBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(),
+                        new android.graphics.Matrix() {{
+                            postRotate(90);
+                        }}, true);
+
                 image.close();
 
-                if (bitmap != null && shouldProcessFrame) {
+                if (displayBitmap != null && shouldProcessFrame) {
                     shouldProcessFrame=false;
                     //run on ui thread hide process button
                     runOnUiThread(() -> processCameraButton.setVisibility(View.INVISIBLE));
-                    saveBitmapToFile(bitmap);
+//                    runOnUiThread(() -> imageView.setImageBitmap(displayBitmap));
+                    saveBitmapToFile(displayBitmap);
 
                     processingExecutor.submit(() -> {
                         //i want to get time difference for inference
@@ -275,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
                         if (onnxModelHandler != null) {
                             try {
                                 Log.d(TAG, "onnx start inferencing");
-                                inferenceResult = onnxModelHandler.runInference(bitmap);
+                                inferenceResult = onnxModelHandler.runInference(displayBitmap);
 
                                 //bellow code for texting padding removal native code.
 //
@@ -322,10 +329,12 @@ public class MainActivity extends AppCompatActivity {
                         long endTime = System.currentTimeMillis();
                         double inferenceTime = (double) (endTime - startTime) /1000;
 
+                        Bitmap savedBitmap= loadBitmapFromFile("depth_colored.png");
 
                         runOnUiThread(() -> {
                             processCameraButton.setVisibility(View.VISIBLE);
                             textView.setText("Last Inference Time " + inferenceTime + " sec");
+                            imageView.setImageBitmap(savedBitmap);
                         });
 
                     });
@@ -339,6 +348,7 @@ public class MainActivity extends AppCompatActivity {
         ByteBuffer buffer = image.getPlanes()[0].getBuffer();
         byte[] bytes = new byte[buffer.remaining()];
         buffer.get(bytes);
+        //rotate this bitmap 90 degree
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
     }
 
@@ -386,6 +396,18 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "Saved bitmap to file: " + file.getAbsolutePath());
         } catch (IOException e) {
             Log.e(TAG, "Error saving bitmap to file", e);
+        }
+    }
+
+    //load a bitmap from storage
+    private Bitmap loadBitmapFromFile(String filename) {
+        File externalDir = new File(context.getExternalFilesDir(null), "");
+        File file = new File(externalDir, filename);
+        if (file.exists()) {
+            return BitmapFactory.decodeFile(file.getAbsolutePath());
+        } else {
+            Log.e(TAG, "File not found: " + file.getAbsolutePath());
+            return null;
         }
     }
 
