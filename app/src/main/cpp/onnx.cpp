@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#include <fstream>
 
 #define LOG_TAG "onnxNative"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
@@ -51,8 +52,30 @@ Java_com_example_onnx_MainActivity_nativeProcess(JNIEnv *env, jobject thiz,jobje
     //string to convert point cloud to string
     std::string pointString="";
 
+    //depth_colored = cv2.applyColorMap(cv2.convertScaleAbs(depth, alpha=255.0/depth.max()), cv2.COLORMAP_JET)
+    double minVal, maxVal;
+    cv::minMaxLoc(resizedDepth, &minVal, &maxVal);
+    cv::Mat depthColored;
+    resizedDepth.convertTo(depthColored, CV_8UC1, 255.0 / maxVal);
+    cv::applyColorMap(depthColored, depthColored, cv::COLORMAP_JET);
+
+    //save depthColored as .png file for testing
+    cv::imwrite("/storage/emulated/0/Android/data/com.example.onnx/files/depth_colored.png", depthColored);
+    LOGD("Depth colored image saved successfully.");
+
     //convert depth map to point cloud
     cv::Mat pointCloud = depthMapToPointCloud(resizedDepth, pointString);
+
+    //save resizedDepth as .raw file for testing
+    std::ofstream depthFile("/storage/emulated/0/Android/data/com.example.onnx/files/depth_map.npy", std::ios::out | std::ios::binary);
+    if (depthFile.is_open()) {
+        depthFile.write((char*)resizedDepth.data, resizedDepth.total() * resizedDepth.elemSize());
+        depthFile.close();
+        LOGD("Depth map saved successfully.");
+    } else {
+        LOGD("Error saving depth map.");
+    }
+
 
    //return pointString as jstring
     return env->NewStringUTF(pointString.c_str());
