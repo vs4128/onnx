@@ -265,6 +265,7 @@ public class MainActivity extends AppCompatActivity {
                     shouldProcessFrame=false;
                     //run on ui thread hide process button
                     runOnUiThread(() -> processCameraButton.setVisibility(View.INVISIBLE));
+                    saveBitmapToFile(bitmap);
 
                     processingExecutor.submit(() -> {
                         //i want to get time difference for inference
@@ -373,6 +374,18 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "Saved text to file: " + file.getAbsolutePath());
         } catch (IOException e) {
             Log.e(TAG, "Error saving text to file", e);
+        }
+    }
+
+    //write function to save bitmap to storage
+    private void saveBitmapToFile(Bitmap bitmap) {
+        File externalDir = new File(context.getExternalFilesDir(null), "");
+        File file = new File(externalDir, "captured_image.jpg");
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            Log.d(TAG, "Saved bitmap to file: " + file.getAbsolutePath());
+        } catch (IOException e) {
+            Log.e(TAG, "Error saving bitmap to file", e);
         }
     }
 
